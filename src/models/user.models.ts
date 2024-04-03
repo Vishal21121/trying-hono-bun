@@ -1,5 +1,6 @@
 import { Schema, model } from "mongoose"
 import { AvailableSocialLogins, UserLoginType, AvailableUserRoles, UserRolesEnum } from "../constants";
+import { hash, compare } from "bcrypt"
 
 interface IUserSchema {
     username: string;
@@ -9,10 +10,6 @@ interface IUserSchema {
     role: string;
     isEmailVerified: boolean;
     refreshToken: string;
-    forgotPasswordToken: string;
-    forgotPasswordExpiry: Date;
-    emailVerificationToken: string;
-    emailVerificationExpiry: Date;
 }
 
 const UserSchema = new Schema<IUserSchema>({
@@ -50,20 +47,20 @@ const UserSchema = new Schema<IUserSchema>({
     },
     refreshToken: {
         type: String,
-    },
-    forgotPasswordToken: {
-        type: String,
-    },
-    forgotPasswordExpiry: {
-        type: Date,
-    },
-    emailVerificationToken: {
-        type: String,
-    },
-    emailVerificationExpiry: {
-        type: Date,
     }
 }, { timestamps: true })
+
+UserSchema.pre("save", async function (next) {
+    if (!this.isModified("password")) {
+        return next()
+    }
+    // Hash the password
+    this.password = await hash(this.password, 10);
+})
+
+UserSchema.methods.isPasswordCorrect = async function (password: string) {
+    return await compare(password, this.password)
+}
 
 const User = model("User", UserSchema)
 export default User
