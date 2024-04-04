@@ -1,6 +1,7 @@
 import { Schema, model } from "mongoose"
 import { AvailableSocialLogins, UserLoginType, AvailableUserRoles, UserRolesEnum } from "../constants";
 import { hash, compare } from "bcrypt"
+import { sign } from "jsonwebtoken"
 
 interface IUserSchema {
     username: string;
@@ -10,6 +11,9 @@ interface IUserSchema {
     role: string;
     isEmailVerified: boolean;
     refreshToken: string;
+    isPasswordCorrect: (password: string) => Promise<boolean>;
+    generateAccessToken: () => string;
+    generateRefreshToken: () => string;
 }
 
 const UserSchema = new Schema<IUserSchema>({
@@ -60,6 +64,32 @@ UserSchema.pre("save", async function (next) {
 
 UserSchema.methods.isPasswordCorrect = async function (password: string) {
     return await compare(password, this.password)
+}
+
+UserSchema.methods.generateAccessToken = function () {
+    return sign(
+        {
+            _id: this._id,
+            email: this.email,
+            password: this.password
+        },
+        String(process.env.ACCESS_TOKEN_SECRET),
+        {
+            expiresIn: String(process.env.ACCESS_TOKEN_EXPIRY)
+        }
+    )
+}
+
+UserSchema.methods.generateRefreshToken = function () {
+    return sign(
+        {
+            _id: this._id,
+        },
+        String(process.env.REFRESH_TOKEN_SECRET),
+        {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+        }
+    )
 }
 
 const User = model("User", UserSchema)

@@ -20,4 +20,14 @@ const UserRegisterValidatorSchema = z.object({
 
 })
 
-export { UserRegisterValidatorSchema }
+const UserLoginValidatorSchema = z.object({
+    email: z
+        .string({ required_error: "Email is required" })
+        .trim()
+        .email("Please provide a valid email id"),
+    password: z
+        .string({ required_error: "Please provide password" })
+        .trim()
+})
+
+export { UserRegisterValidatorSchema, UserLoginValidatorSchema }
